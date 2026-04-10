@@ -2,7 +2,7 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
 const API_URL = isLocalhost 
   ? 'http://localhost:5000/api'
-  : 'https://YOUR_NEW_RENDER_URL.onrender.com/api';
+  : 'https://cis-project-ikrm.onrender.com/api';
 
 const fetchAPI = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
