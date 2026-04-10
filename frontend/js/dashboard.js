@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="file-actions">
         <a href="${API_URL}/files/${file._id}/download" target="_blank" class="btn-secondary" style="background:var(--primary-color);color:white;border:none;">Preview/DL</a>
         <button class="btn-secondary btn-share" data-id="${file._id}">Share</button>
+        <button class="btn-danger btn-delete" data-id="${file._id}">Delete</button>
       </div>
     `;
     fileList.prepend(card); // Add to top
@@ -105,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Share Logic
+  // Share and Delete Logic
   fileList.addEventListener('click', async (e) => {
     if (e.target.classList.contains('btn-share')) {
       const fileId = e.target.getAttribute('data-id');
@@ -115,6 +116,31 @@ document.addEventListener('DOMContentLoaded', () => {
         shareModal.classList.remove('hidden');
       } catch (err) {
         showAlert(err.message, 'error');
+      }
+    }
+
+    if (e.target.classList.contains('btn-delete')) {
+      const fileId = e.target.getAttribute('data-id');
+      if (confirm('Are you sure you want to delete this file?')) {
+        try {
+          e.target.disabled = true;
+          e.target.textContent = 'Deleting...';
+          
+          await fetchAPI(`/files/${fileId}`, {
+            method: 'DELETE'
+          });
+          
+          showAlert('File deleted successfully', 'success');
+          e.target.closest('.file-card').remove();
+          
+          if (fileList.children.length === 0) {
+            fileList.innerHTML = '<p style="color:var(--text-secondary);grid-column:1/-1;text-align:center;">No files found. Upload something to get started!</p>';
+          }
+        } catch (err) {
+          e.target.disabled = false;
+          e.target.textContent = 'Delete';
+          showAlert(err.message, 'error');
+        }
       }
     }
   });

@@ -4,8 +4,10 @@ const auth = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const File = require('../models/File');
 const s3 = require('../config/s3');
-const { GetObjectCommand } = require('@aws-sdk/client-s3');
+const { GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const fs = require('fs');
+const path = require('path');
 
 // @route   POST api/files/upload
 // @desc    Upload a file
@@ -98,6 +100,40 @@ router.get('/:id/download', async (req, res) => {
     } 
 
     return res.redirect(file.url);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/files/:id
+// @desc    Delete a file
+// @access  Private
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const file = await File.findById(req.params.id);
+
+    if (!file) return res.status(404).json({ msg: 'File not found' });
+
+    if (file.owner.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    if (s3 && file.s3Key && file.url.includes('amazonaws.com')) {
+      const command = new DeleteObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: file.s3Key,
+      });
+      await s3.send(command);
+    } else {
+      const filePath = path.join(__dirname, '..', 'uploads', file.s3Key);
+      if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+      }
+    }
+
+    await File.deleteOne({ _id: req.params.id });
+    res.json({ msg: 'File removed' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
